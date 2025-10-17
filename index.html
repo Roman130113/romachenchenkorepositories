@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Роман ченченко проект</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=GFS+Neohellenic:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-black text-white overflow-x-hidden noise-bg">
+    <div class="custom-cursor" id="cursor"></div>
+    <!-- Main Container -->
+    <div class="relative min-h-screen overflow-hidden">
+        <!-- Floating Rainbow Circles -->
+        <div id="floating-circles"></div>
+        
+        <!-- Interactive Pattern Canvas -->
+        <canvas id="patternCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-30"></canvas>
+        
+        <!-- Particle System Container -->
+        <div id="particle-container" class="fixed top-0 left-0 w-full h-full pointer-events-none z-0"></div>
+        
+        <!-- Content -->
+        <div class="relative z-10 container mx-auto px-4 py-20">
+            <header class="text-center mb-20">
+                <div class="flex justify-center space-x-4 mb-8">
+                    <a href="#" class="px-6 py-4 rainbow-gradient text-white font-bold hover:opacity-90 transition-all duration-300 animate-neon relative overflow-hidden" style="animation: neonBlink 1.5s infinite alternate; text-shadow: 0 0 5px currentColor;">
+                        <span class="relative z-10">Главная</span>
+                        <span class="absolute inset-0 bg-white opacity-0 hover:opacity-10 transition-opacity duration-300"></span>
+                    </a>
+                    <a href="#" class="px-6 py-2 rounded-full bg-gray-800 text-white font-medium hover:bg-gray-700 transition-colors">
+                        О себе
+                    </a>
+                </div>
+                <div class="flex flex-col items-center">
+                    <img src="https://pixelartmaker-data-78746291193.nyc3.digitaloceanspaces.com/image/dd36e9c51556f79.png" alt="Decorative element" class="w-32 h-32 mb-6 animate-pulse">
+                    <h1 class="text-5xl md:text-7xl font-bold mb-6 rainbow-text">
+                        <span class="rainbow-gradient bg-clip-text text-transparent"> 𝚁𝚘𝚖𝚊𝚗𝙲𝚑𝚎𝚗𝚌𝚑𝚎𝚗𝚔𝚘 </span>
+                    </h1>
+                </div>
+                <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+                    𝚖𝚊𝚍𝚖
+                </p>
+            </header>
+
+            <!-- 3D Cube Container -->
+            <div class="flex justify-center my-20">
+                <div id="cube-container" class="w-64 h-64"></div>
+            </div>
+        </div>
+        
+        <!-- Animated Signature -->
+        <div class="relative z-10 py-12 text-center">
+            <div class="signature-animation text-4xl md:text-5xl font-bold" style="font-family: 'GFS Neohellenic', sans-serif">
+                <span class="letter">m</span>
+                <span class="letter">a</span>
+                <span class="letter">d</span>
+                <span class="letter">e</span>
+                <span class="letter space"></span>
+                <span class="letter">b</span>
+                <span class="letter">y</span>
+                <span class="letter space"></span>
+                <span class="letter">r</span>
+                <span class="letter">.</span>
+                <span class="letter">c</span>
+                <span class="letter">h</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="relative z-10 py-8 text-center text-gray-400">
+            <p>© мкмк | м </p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Custom cursor with trail
+            const cursor = document.getElementById('cursor');
+            const trail = document.createElement('div');
+            trail.className = 'cursor-trail';
+            document.body.appendChild(trail);
+            
+            let lastX = 0;
+            let lastY = 0;
+            
+            document.addEventListener('mousemove', function(e) {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+                
+                // Calculate distance from last position
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Update trail line
+                trail.style.left = lastX + 'px';
+                trail.style.top = lastY + 'px';
+                trail.style.width = distance + 'px';
+                trail.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+                
+                // Update last position
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+            
+            // Create floating rainbow circles
+            const container = document.getElementById('floating-circles');
+            const colors = [
+                'rgba(255, 0, 0, 0.6)', 'rgba(275, 128, 0, 0.6)', 'rgba(255, 255, 0, 0.6)',
+                'rgba(0, 255, 0, 0.6)', 'rgba(0, 255, 128, 0.6)', 'rgba(0, 255, 255, 0.6)',
+                'rgba(0, 128, 255, 0.6)', 'rgba(0, 0, 255, 0.6)', 'rgba(128, 0, 255, 0.6)',
+                'rgba(255, 0, 255, 1.6)'
+            ];
+            
+            for (let i = 0; i < 30; i++) {
+                const circle = document.createElement('div');
+                circle.className = 'pattern-circle interactive-circle';
+                
+                const size = Math.random() * 100 + 50;
+                const posX = Math.random() * window.innerWidth;
+                const posY = Math.random() * window.innerHeight;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 5;
+                
+                circle.style.width = `${size}px`;
+                circle.style.height = `${size}px`;
+                circle.style.left = `${posX}px`;
+                circle.style.top = `${posY}px`;
+                circle.style.backgroundColor = color;
+                circle.style.animation = `pulse ${duration}s ease-in-out ${delay}s infinite`;
+                
+                container.appendChild(circle);
+                
+                // Make circles move slowly
+                gsap.to(circle, {
+                    x: `+=${(Math.random() - 0.5) * 100}`,
+                    y: `+=${(Math.random() - 0.5) * 100}`,
+                    duration: duration,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: "sine.inOut"
+                });
+                
+                // Interactive effect
+                circle.addEventListener('mouseenter', () => {
+                    gsap.to(circle, {
+                        scale: 1.5,
+                        opacity: 1,
+                        duration: 0.3
+                    });
+                });
+                
+                circle.addEventListener('mouseleave', () => {
+                    gsap.to(circle, {
+                        scale: 1,
+                        opacity: 0.7,
+                        duration: 0.3
+                    });
+                });
+            }
+            
+            // Canvas pattern animation
+            const canvas = document.getElementById('patternCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            let time = 0;
+            const points = [];
+            
+            // Create initial points
+            for (let i = 0; i < 50; i++) {
+                points.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: Math.random() * 2 - 1,
+                    vy: Math.random() * 2 - 1,
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+            }
+            
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                time += 0.005;
+                
+                // Update points
+                points.forEach(point => {
+                    point.x += point.vx;
+                    point.y += point.vy;
+                    
+                    // Bounce off edges
+                    if (point.x < 0 || point.x > canvas.width) point.vx *= -1;
+                    if (point.y < 0 || point.y > canvas.height) point.vy *= -1;
+                    
+                    // Add some randomness
+                    point.vx += (Math.random() - 0.5) * 0.2;
+                    point.vy += (Math.random() - 0.5) * 0.2;
+                    
+                    // Limit speed
+                    const speed = Math.sqrt(point.vx * point.vx + point.vy * point.vy);
+                    const maxSpeed = 99;
+                    if (speed > maxSpeed) {
+                        point.vx = (point.vx / speed) * maxSpeed;
+                        point.vy = (point.vy / speed) * maxSpeed;
+                    }
+                });
+                
+                // Draw connections
+                for (let i = 0; i < points.length; i++) {
+                    for (let j = i + 1; j < points.length; j++) {
+                        const p1 = points[i];
+                        const p2 = points[j];
+                        
+                        const dx = p1.x - p2.x;
+                        const dy = p1.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 200) {
+                            const alpha = 1 - dist / 200;
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                
+                // Draw points
+                points.forEach(point => {
+                    ctx.fillStyle = point.color;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 3 + Math.sin(time * 2) * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                requestAnimationFrame(draw);
+            }
+            
+            draw();
+            
+            // Mouse interaction
+            let mouseX = 0;
+            let mouseY = 0;
+            
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                // Add some repulsion force to points
+                points.forEach(point => {
+                    const dx = point.x - mouseX;
+                    const dy = point.y - mouseY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 150) {
+                        const force = (150 - dist) / 150 * 5;
+                        point.vx += (dx / dist) * force * 0.1;
+                        point.vy += (dy / dist) * force * 0.1;
+                    }
+                });
+            });
+            
+            // Animate signature letters
+            const letters = document.querySelectorAll('.letter');
+            letters.forEach((letter, index) => {
+                gsap.to(letter, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.5,
+                    delay: index * 0.1,
+                    ease: "back.out(1.7)"
+                });
+                
+                // Add rainbow color effect on hover
+                letter.addEventListener('mouseenter', () => {
+                    gsap.to(letter, {
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        duration: 0.3,
+                        y: -5,
+                        scale: 1.2,
+                        textShadow: '0 0 15px currentColor'
+                    });
+                });
+                
+                letter.addEventListener('mouseleave', () => {
+                    gsap.to(letter, {
+                        color: 'white',
+                        duration: 0.3,
+                        y: 0,
+                        scale: 1,
+                        textShadow: '0 0 10px rgba(255,255,255,0.5)'
+                    });
+                });
+            });
+
+            // Particle system for "Главная" button
+            const particleContainer = document.getElementById('particle-container');
+            const mainBtn = document.querySelector('a[href="#"]');
+            let particles = [];
+            
+            class Particle {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.size = Math.random() * 5 + 2;
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.vx = (Math.random() - 0.5) * 10;
+                    this.vy = Math.random() * -15 - 5;
+                    this.gravity = 0.2;
+                    this.friction = 0.95;
+                    this.life = 100;
+                    this.decay = Math.random() * 0.5 + 0.5;
+                }
+                
+                update() {
+                    this.vy += this.gravity;
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.life -= this.decay;
+                }
+                
+                draw() {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.width = `${this.size}px`;
+                    particle.style.height = `${this.size}px`;
+                    particle.style.backgroundColor = this.color;
+                    particle.style.left = `${this.x}px`;
+                    particle.style.top = `${this.y}px`;
+                    particle.style.opacity = this.life / 100;
+                    particle.style.borderRadius = '50%';
+                    particle.style.position = 'absolute';
+                    particle.style.boxShadow = `0 0 ${this.size/2}px ${this.size/4}px ${this.color}`;
+                    particle.style.filter = 'blur(1px)';
+                    particleContainer.appendChild(particle);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 50);
+                }
+            }
+            
+            function createParticles(x, y, count = 30) {
+                for (let i = 0; i < count; i++) {
+                    particles.push(new Particle(x, y));
+                }
+            }
+            
+            function updateParticles() {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                    
+                    if (particles[i].life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+                
+                requestAnimationFrame(updateParticles);
+            }
+            
+            updateParticles();
+            
+            // Particle explosion on Главная button click
+            const mainButton = document.querySelector('a[href="#"]');
+            
+            mainButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                createParticles(e.clientX, e.clientY, 10);
+                
+                // Animate all points away from center
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                points.forEach(point => {
+                    const dx = point.x - centerX;
+                    const dy = point.y - centerY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist > 10) {
+                        const force = 10;
+                        point.vx += (dx / dist) * force;
+                        point.vy += (dy / dist) * force;
+                    } else {
+                        // Random direction if too close to center
+                        point.vx = (Math.random() - 0.5) * 10;
+                        point.vy = (Math.random() - 0.5) * 10;
+                    }
+                    
+                    // Change color
+                    point.color = colors[Math.floor(Math.random() * colors.length)];
+                });
+                
+                // Animate floating circles
+                const circles = document.querySelectorAll('.pattern-circle');
+                circles.forEach(circle => {
+                    gsap.to(circle, {
+                        x: `+=${(Math.random() - 0.5) * 300}`,
+                        y: `+=${(Math.random() - 0.5) * 300}`,
+                        duration: 1,
+                        ease: "power2.out"
+                    });
+                    
+                    // Change color
+                    gsap.to(circle, {
+                        backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+                        duration: 0.5
+                    });
+                });
+            });
+
+            // Initialize 3D Cube
+            const cubeContainer = document.getElementById('cube-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(cubeContainer.clientWidth, cubeContainer.clientHeight);
+            cubeContainer.appendChild(renderer.domElement);
+            
+            // Create cube
+            const geometry = new THREE.BoxGeometry();
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+            
+            camera.position.z = 3;
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+
+            // Make cube interactive
+            cubeContainer.addEventListener('mouseenter', () => {
+                gsap.to(cube.rotation, { 
+                    x: Math.PI * 2,
+                    y: Math.PI * 2,
+                    duration: 2,
+                    ease: "power2.inOut"
+                });
+            });
+        });
+    </script>
+</body>
+</html>
